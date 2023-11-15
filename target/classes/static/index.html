@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>小萌神订餐网</title>
+    <!-- 图标 -->
+    <link rel="short icon" href="image/eat0.ico"/>
+    <link rel="stylesheet" href="css/index.css"/>
+    <link href="css/11.css" rel="stylesheet">
+</head>
+<body>
+
+<div id="app">
+
+    <div class="head">
+        小萌神订餐网
+        <div class="right">
+            <span class="showlogin" id="showlogin" @click="loginflag=!loginflag" v-if="!loginflag">登录</span>
+            <span id="exitspan" v-if="isLoginflag">
+                欢迎您：{{username}}|<a href="javascript:void" @click.prevent="logout()">登出</a>
+            </span>
+        </div>
+    </div>
+
+    <div class="content">
+        <ul class="allfoods" id="allfoods">
+<!--            第一个元素 元组对象 -->
+            <li v-for="(item,index) in dataset">
+                <h3 @click="showFood( item.fid )">{{item.fname}}<span class="badge">{{item.detail_count}}</span></h3>
+                <div class="fooddesc" v-show="item.status">
+                    <img :src=`http://localhost:8888/${item.fphoto}` class="foodimg"/>
+                    <article class="foodprice">
+                        <p>菜品描述：{{item.detail}}</p>
+                        <p class="normalprice">原价：￥{{item.normprice}}</p>
+                        <p class="realprice">特价：￥{{item.realprice}}</p>
+                        <p class="buybtn" @click="addCart(item.fid,1)">加入购物车</p>
+                    </article>
+                </div>
+            </li>
+        </ul>
+        <!--分页条-->
+        <a href="javascript:void" @click.prevent="clickPage(1)">第一页</a>
+        <a href="javascript:void" @click.prevent="clickPage( pagebean.pre )">上一页</a>
+        <a href="javascript:void" @click.prevent="clickPage(pagebean.next)">下一页</a>
+        <a href="javascript:void" @click.prevent="clickPage(pagebean.totalpages)">最后一页</a>
+        总共{{pagebean.total}}条记录,每页{{pagebean.pagesize}}条记录,当前第{{pagebean.pageno}}页,共{{pagebean.totalpages}}页
+    </div>
+
+    <!--  <div class="look">浏览记录</div> -->
+    <div class="shoppingcar">
+        <div class="carbag" id="carbag" :class="{isShow:isHide==false,isHide:isHide==true}">
+            <p>购物车<span id="del" @click="clearAll()">[清空]</span></p>
+            <table id="bagcontent" cellpadding="0" cellspacing="0">
+                <!--购物车的条目-->
+                <tr v-for=" cartItem in cartItemsArray   ">
+                    <td class="bagfname">{{cartItem.food.fname}}</td>
+                    <td class="bagnum">
+                        <button @Click="addCart(cartItem.food.fid,1)">+</button>
+                        <span > {{cartItem.num}}</span>
+                        <button  @Click="addCart(cartItem.food.fid,-1)">-</button>
+                    </td>
+                    <td>{{cartItem.smallCount}}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="carprice" @click.prevent="displayCart()">￥{{totalPrice}}</div>
+        <div class="carinfo" v-if="cartItemsArray.length<=0">购物车是空的</div>
+        <div class="carinfo" v-else @click.prevent="orderflag=!orderflag">立即下单</div>
+    </div>
+
+    <div class="footer">
+        Copyright © 2016 Xiaomengsheng Incorporated Company. All rights reserved.
+        <br/>
+        订餐，就上小萌神订餐网!
+    </div>
+
+    <div class="login" id="login" v-if="loginflag">
+        <span id="unshow" @click="loginflag=false">X</span>
+        <form name="myform">
+            <table>
+                <tr>
+                    <td class="labname"><label for="username">用户名：</label></td>
+                    <td><input type="text" name="username" placeholder="请输入用户名" v-model="username"
+                               id="username"/></td>
+                </tr>
+                <tr>
+                    <td class="labname"><label for="pwd">密码：</label></td>
+                    <td><input type="password" name="pwd" placeholder="请输入密码" v-model="pwd"
+                               id="pwd"/></td>
+                </tr>
+                <tr>
+                    <td class="labname"><label for="yzm">验证码：</label></td>
+                    <td><input type="text" name="yzm" placeholder="请输入验证码" v-model="yzm"
+                               id="yzm"/></td>
+                    <td><img src="resfood/code.action"
+                             id="yzm_img"/></td>
+                </tr>
+            </table>
+        </form>
+        <input type="button" value="login" class="btn" id="btn" @click="login()"/>
+    </div>
+
+    <!-- 订单信息 -->
+    <div class="login" id="myinfo" v-if="orderflag">
+        <span id="unshowinfo"  @click="orderflag=false">X</span>
+        <form name="forminfo">
+            <table>
+                <tr>
+                    <td class="labname"><label for="address">送货地址:</label></td>
+                    <td><input name="address" type="text" placeholder="请输入送货地址" id="address" v-model="orderInfo.address"/></td>
+                </tr>
+                <tr>
+                    <td class="labname"><label for="tel">联系电话:</label></td>
+                    <td><input type="text" id="tel" placeholder="请输入联系电话" name="tel" v-model="orderInfo.tel"/></td>
+                </tr>
+                <tr>
+                    <td class="labname"><label for="deliverytime">送货时间:</label></td>
+                    <td><input type="text" name="deliverytime" id="deliverytime" placeholder="请输入送货时间（默认马上发货）" v-model="orderInfo.deliverytime"/></td>
+                </tr>
+                <tr>
+                    <td class="labname"><label for="ps">附言:</label></td>
+                    <td><input type="text" id="ps" placeholder="请输入附言" name="ps" v-model="orderInfo.ps"/></td>
+                </tr>
+            </table>
+        </form>
+        <input type="button" value="提交" class="btn" id="submit" @Click="confirmOrder()">
+    </div>
+
+</div>
+
+<!--  在网页里面引入javascript    jquery:DOM   大家注意顺序  -->
+<script src="js/jquery-1.9.1.js"></script>
+<script src="js/vue.js"></script>
+<script src="js/axios.js"></script>
+<script type="text/javascript">
+    let vm = new Vue({
+        el: "#app",
+        data: {
+            isHide:true,
+            orderflag: false,     //送货地址div
+            loginflag: false,
+            isLoginflag:false,
+            userid:'',
+            username:'',
+            orderInfo:{
+                address:'湖南工学院',
+                tel:'12345678',
+                deliverytime:'2023-11-02 19:04:04',
+                ps:'快快'
+            },
+            pwd:'a',
+            yzm:'',
+            dataset:[],//菜品列表
+            email:'',
+            cartItemsArray:[],
+            totalPrice:"",
+            pagebean: {
+                pageno: 1,
+                pagesize: 5,
+                pre: 1,
+                next: 1,
+                sortby: "fid",
+                sort: "asc",
+                total:0,
+                totalpages:0
+            }
+        },
+        computed: {
+            //计算属性
+        },
+        methods: {
+            confirmOrder:function () {
+                var params = new URLSearchParams(this.orderInfo);
+                axios.post("resorder/confirmOrder",params).then(res=>{
+                    var jsonModel = res.data;
+                    if (jsonModel.code == 1){
+                        this.cartItemsArray=[];
+                        this.totalPrice=0.0;
+                        this.isHide=false;
+                        this.orderflag=false;
+                        alert("下单成功")
+                    }
+                })
+            }
+            ,
+            displayCart:function () {
+                this.isHide = !this.isHide;
+            },
+            clearAll:function (){
+                axios.get("resorder/clearAll").then(res=>{
+                    var jsonModel = res.data;
+                    if(jsonModel.code==1){
+                      this.cartItemsArray=[];
+                      this.totalPrice=0.0;
+                      this.isHide=false;
+                    }
+
+                })
+            }
+            ,
+            logout:function () {
+                var _this = this;
+                axios.get("resuser/logout").then(res=>{
+                    var jsonModel = res.data;
+                    _this.userid='',
+                    _this.username='',
+                    _this.email='',
+                        _this.isLoginflag = false;
+                })
+            }
+            ,
+            login:function (){
+                let _this=this;
+                var params = new URLSearchParams();
+                params.append("username",_this.username);
+                params.append("pwd",_this.pwd);
+                params.append("yzm",_this.yzm);
+                axios.post("resuser/login",params).then(res=>{
+                    var data = res.data;
+                    if(data.code==1){
+                        alert("登录成功！")
+                        var resuser = data.obj;
+                        _this.userid=resuser.userid;
+                        _this.email =resuser.email;
+                        _this.loginflag = false;
+                        _this.isLoginflag = true;
+                    }else {
+                        alert("登录失败",data.msg);
+                    }
+                });
+            },
+            addCart:function (fid,num) {
+              let _this = this;
+              if(_this.username==null || _this.username==''){
+                  alert("请先登录");
+                  return;
+              }
+              var param = new URLSearchParams()
+                param.append("num",num);
+                param.append("fid",fid);
+                axios.post("resorder/addCart",param).then(res=>{
+                    var jsonModel = res.data;
+                    if(jsonModel.code==-1){
+                        alert("请登录");
+                        return;
+                    }
+                    if(jsonModel.code==0){
+                        alert("添加购物车失败。。。");
+                        return;
+                    }
+                //     添加成功
+                    this.showCartInfo(jsonModel.obj);
+                });
+              //TODO:加入购物车操作。。。;
+
+
+            },
+            showCartInfo:function (cartItemsArray) {
+            //     TODO
+                this.cartItemsArray = cartItemsArray;
+                this.totalPrice=0;
+                this.cartItemsArray.forEach((item,index)=>{
+                    this.totalPrice += item.smallCount;
+                })
+            },
+            clickPage:function (pageno) {
+              var promise =this.showPage(pageno)
+              promise.then(res =>{
+                  this.displayPage(res.data)
+              })
+            },
+            showFood:function (fid) {
+                let _this= this;
+              _this.dataset.forEach((item,index)=>{
+                  item.status = (fid==item.fid);
+              });
+            //   访问controller-》调用修改的redis 给这菜
+                axios.get("resfood/detailCountAdd?fid="+fid).then(res=>{
+                    var jsonModel = res.data;
+                    if(jsonModel.code==1){
+                        var count = jsonModel.obj;
+                        console.log(count);
+                    //     显示
+                        _this.dataset.forEach(item => {
+                            if (item.fid == fid) {
+                                item.detail_count = count;
+                            }
+                        });
+                    }
+                })
+
+            },
+            //普通方法
+            showPage: function (pageno) {
+                var _this = this;//因为this在页面指window对象，在这里指vue对象，所以为防止变量污染，建议重新指定变量
+                //Promise对象
+                return  axios.get("resfood/findByPage?pageno=" + pageno
+                    + "&pagesize=" + _this.pagebean.pagesize
+                    + "&sortby=" + _this.pagebean.sortby
+                    + "&sort=" + _this.pagebean.sort);//Promise对象
+            },
+            displayPage:function (jsonModel){
+                if(jsonModel.code==1){
+                    jsonModel.data.dataset.forEach( (item,index)=>{
+                        item.status = false;
+                    } )
+                    this.pagebean=jsonModel.data;
+                    this.dataset=jsonModel.data.dataset;
+                    console.info(this.pagebean)
+                }
+            },
+            isLogin:function (){
+                var _this = this;
+                axios.get("resuser/isLogin").then(res=>{
+                    var jsonModel = res.data;
+                    if(jsonModel.code == 1){
+                        var resuser = jsonModel.obj;
+                        _this.userid = jsonModel.userid;
+                        _this.email = jsonModel.email;
+                        _this.username =resuser.username;
+                        _this.loginflag=false;
+                        _this.isLoginflag=true;
+                    }else {
+                        _this.isLoginflag=false;
+                    }
+                })
+            },
+            showCart:function (){
+                axios.get("resorder/getCartInfo").then(res=>{
+                    var jsonModel = res.data;
+                    if(jsonModel.code==1){
+                       this.showCartInfo(jsonModel.obj);//obj中存的就是 cartItemsArray
+                    }else {
+                        this.cartItemsArray=[];
+                        this.totalPrice=0.0;
+                        this.isHide=false;
+                    }
+                })
+            }
+        },
+
+        mounted: function() {
+            // var prom = this.showPage(1);
+            // prom.then(result =>{
+            //
+            // });
+            // var pro2 = this.is();
+            // pro2.then();
+            axios.all([this.showPage(1),this.isLogin(),this.showCart()]).then(
+                axios.spread(function (d1,d2,d3){
+                    let jsonModel=d1.data;
+                    if (jsonModel.code==1){
+                        vm.displayPage(jsonModel);
+                    }
+                })
+            );
+
+
+
+            // var prom=this.showPage(1);
+            // prom.then(result=>{
+            //
+            // });
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<script>
+    var a = new Promise(function (resolve, reject) {
+    //     访问后台url
+    //     得到结果，jsonModel =》 1
+    //     axios.get()
+        var jsonModel ={'name':'ljr','age':20};
+        resolve(jsonModel)
+    }).then(function (value) {
+        console.log(value);//处理这个value（jsonModel）
+        return value;//要连续发请求的话，则返回值，这个value值又被包装成Promise对象
+    }).then(function (value) {
+        console.log(value.age);//2
+    //     没有返回值
+    }).then(function (value) {
+        console.log(value)//undefined
+    }).catch(function (value) {
+        console.log("异常")
+    })
+</script>
+
+</body>
+</html>
